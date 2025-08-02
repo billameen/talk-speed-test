@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme inline {
+    --color-bg: #0d1b2a;
+}
+
+
+#play-icon {
+    transition: all 0.2s ease-out;
+}
+
+#play-icon:hover {
+    transform: scale(0.9);
+    cursor: pointer;
+    fill: oklch(60% 0.118 184.704);
+}
