@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,24 +7,24 @@ import {
   ScrollView,
   Modal,
   SafeAreaView,
-} from 'react-native';
-import Svg, { Path, G } from 'react-native-svg';
-import Vosk from 'react-native-vosk';
+} from "react-native";
+import Svg, { Path, G } from "react-native-svg";
+// import Vosk from "react-native-vosk";
 
-type Mode = 'Freestyle' | 'Regular' | 'Custom' | 'Metronome';
+type Mode = "Freestyle" | "Regular" | "Custom" | "Metronome";
 
 const TalkingSpeedTest: React.FC = () => {
-  const [wpm, setWpm] = useState<string>('--');
-  const [selectedMode, setSelectedMode] = useState<Mode>('Regular');
+  const [wpm, setWpm] = useState<string>("--");
+  const [selectedMode, setSelectedMode] = useState<Mode>("Regular");
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
-  const [transcript, setTranscript] = useState<string>('');
+  const [transcript, setTranscript] = useState<string>("");
   const [isRecording, setIsRecording] = useState<boolean>(false);
 
   const [ready, setReady] = useState<Boolean>(false);
   const [recognizing, setRecognizing] = useState<Boolean>(false);
   const [result, setResult] = useState<string | undefined>();
 
-  const modes: Mode[] = ['Freestyle', 'Regular', 'Custom', 'Metronome'];
+  const modes: Mode[] = ["Freestyle", "Regular", "Custom", "Metronome"];
 
   const sampleText = `Origami offers numerous benefits that extend beyond mere artistic expression. Engaging in this intricate paper-folding art enhances fine motor skills and hand-eye coordination, making it a valuable activity for individuals of all ages. Additionally, origami fosters creativity and problem-solving abilities, as practitioners must visualize and execute complex designs. The meditative nature of folding paper can also promote relaxation and reduce stress, contributing to overall mental well-being. Furthermore, origami serves as an educational tool, helping to teach concepts in mathematics and geometry through practical application, thereby enriching cognitive development.`;
 
@@ -43,86 +43,86 @@ const TalkingSpeedTest: React.FC = () => {
   };
 
   const handlePlayPress = (): void => {
-    setIsRecording(!isRecording);
+//     setIsRecording(!isRecording);
+//
+//     if (isRecording) {
+//       if (!ready) load;
+//       record;
+//     }
 
-    if (isRecording) {
-      if (!ready) load;
-      record;
-    }
+//     if (!isRecording) {
+//       if (ready) unload;
+//       stop;
 
-    if (!isRecording) {
-      if (ready) unload;
-      stop;
-
-      setTranscript('Recording started...');
-      setWpm('120'); // Example WPM
-    } else {
-      setTranscript('Recording stopped.');
-    }
+      setTranscript("Recording started...");
+      setWpm("120"); // Example WPM
+//     } else {
+      setTranscript("Recording stopped.");
+//     }
   };
 
-
-  const vosk = useRef(new Vosk()).current;
-  const load = useCallback(() => {
-    vosk
-      .loadModel('model-en-us')
-      .then(() => setReady(true))
-      .catch((e) => console.error(e));
-  }, [vosk]);
-
-  const record = () => {
-    vosk
-      .start()
-      .then(() => {
-        console.log('Starting recognition...');
-        setRecognizing(true);
-      })
-      .catch((e) => console.error(e));
-  }
-
-  const stop = () => {
-    vosk.stop();
-    console.log("Stopping recognition...");
-    setRecognizing(false);
-  }
-
-  const unload = useCallback(() => {
-    vosk.unload();
-    setReady(false);
-    setRecognizing(false);
-  }, [vosk]);
-
-  useEffect(() => {
-    const resultEvent = vosk.onResult((res) => {
-      console.log("An onResult event has been caught:" + res);
-      setResult(res);
-    });
-
-    const partialResultEvent = vosk.onPartialResult((res) => {
-      setResult(res);
-    });
-
-    const finalResultEvent = vosk.onFinalResult((res) => {
-      setResult(res);
-    });
-
-    const errorEvent = vosk.onError((e) => {
-      console.error(e);
-    });
-
-    const timeoutEvent = vosk.onTimeout(() => {
-      console.log("Recognizer timed out");
-      setRecognizing(false);
-    });
-
-    return () => {
-      resultEvent.remove();
-      partialResultEvent.remove();
-      finalResultEvent.remove();
-      errorEvent.remove();
-      timeoutEvent.remove();
-    };
-  }, [vosk]);
+//
+//   const vosk = useRef(new Vosk()).current;
+//   const load = useCallback(() => {
+//     vosk
+//       .loadModel("model-en-us")
+//       .then(() => setReady(true))
+//       .catch((e) => console.error(e));
+//   }, [vosk]);
+//
+//   const record = () => {
+//     vosk
+//       .start()
+//       .then(() => {
+//         console.log("Starting recognition...");
+//         setRecognizing(true);
+//       })
+//       .catch((e) => console.error(e));
+//   }
+//
+//   const stop = () => {
+//     vosk.stop();
+//     console.log("Stopping recognition...");
+//     setRecognizing(false);
+//   }
+//
+//   const unload = useCallback(() => {
+//     vosk.unload();
+//     setReady(false);
+//     setRecognizing(false);
+//   }, [vosk]);
+//
+//   useEffect(() => {
+//     const resultEvent = vosk.onResult((res) => {
+//       console.log("An onResult event has been caught:" + res);
+//       setResult(res);
+//     });
+//
+//     const partialResultEvent = vosk.onPartialResult((res) => {
+//       setResult(res);
+//     });
+//
+//     const finalResultEvent = vosk.onFinalResult((res) => {
+//       setResult(res);
+//     });
+//
+//     const errorEvent = vosk.onError((e) => {
+//       console.error(e);
+//     });
+//
+//     const timeoutEvent = vosk.onTimeout(() => {
+//       console.log("Recognizer timed out");
+//       setRecognizing(false);
+//     });
+//
+//     return () => {
+//       resultEvent.remove();
+//       partialResultEvent.remove();
+//       finalResultEvent.remove();
+//       errorEvent.remove();
+//       timeoutEvent.remove();
+//     };
+//   }, [vosk]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   // General styling
   container: {
     flex: 1,
-    backgroundColor: '#0f172a', // bg-slate-900
+    backgroundColor: "#0f172a", // bg-slate-900
   },
   scrollContent: {
     flexGrow: 1,
@@ -223,23 +223,23 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 48,
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#0b4f4a', // text-teal-900
-    textAlign: 'center',
+    fontWeight: "bold",
+    color: "#0b4f4a", // text-teal-900
+    textAlign: "center",
   },
   mainContent: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   wpmText: {
     fontSize: 48,
-    fontWeight: 'bold',
-    color: '#2dd4bf', // text-teal-300
+    fontWeight: "bold",
+    color: "#2dd4bf", // text-teal-300
     marginBottom: 24,
   },
 
@@ -249,62 +249,62 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   settingsButton: {
-    backgroundColor: '#2dd4bf1a', // bg-teal-400/10
+    backgroundColor: "#2dd4bf1a", // bg-teal-400/10
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
     minWidth: 200,
-    alignItems: 'center',
+    alignItems: "center",
   },
   settingsButtonText: {
-    color: '#2dd4bf', // text-teal-300
+    color: "#2dd4bf", // text-teal-300
     fontSize: 18,
   },
 
 
-  // Play button styling 
+  // Play button styling
   playButton: {
-    backgroundColor: '#2dd4bf1a', // bg-teal-400/10
+    backgroundColor: "#2dd4bf1a", // bg-teal-400/10
     borderRadius: 50,
     padding: 10,
     marginBottom: 32,
   },
   recordingButton: {
-    backgroundColor: '#ef444433', // Red tint when recording - bg-red-500/20
+    backgroundColor: "#ef444433", // Red tint when recording - bg-red-500/20
   },
 
 
   // Sample text styling
   textContainer: {
-    backgroundColor: '#2dd4bf1a', // bg-teal-400/10
+    backgroundColor: "#2dd4bf1a", // bg-teal-400/10
     padding: 32,
     borderRadius: 24,
     marginBottom: 24,
-    width: '100%',
+    width: "100%",
   },
   sampleText: {
     fontSize: 18,
-    color: '#2dd4bfe6', // text-teal-300/90
+    color: "#2dd4bfe6", // text-teal-300/90
     lineHeight: 28,
   },
 
 
   // Transcript styling
   transcriptContainer: {
-    backgroundColor: '#2dd4bf1a', // bg-teal-400/10
+    backgroundColor: "#2dd4bf1a", // bg-teal-400/10
     padding: 32,
     borderRadius: 24,
-    width: '100%',
+    width: "100%",
   },
   transcriptTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#bfdbfe', // text-teal-200
+    fontWeight: "600",
+    color: "#bfdbfe", // text-teal-200
     marginBottom: 8,
   },
   transcriptText: {
     fontSize: 16,
-    color: '#cbd5e1', // text-slate-200
+    color: "#cbd5e1", // text-slate-200
     lineHeight: 24,
     minHeight: 50,
   },
@@ -313,16 +313,16 @@ const styles = StyleSheet.create({
   // Settings modal styling
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    backgroundColor: '#134e4a', // bg-teal-900
+    backgroundColor: "#134e4a", // bg-teal-900
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     minWidth: 200,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -332,17 +332,17 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalButton: {
-    backgroundColor: '#0d9488', // bg-teal-600
+    backgroundColor: "#0d9488", // bg-teal-600
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2dd4bf1a', // bg-teal-400/10
+    borderBottomColor: "#2dd4bf1a", // bg-teal-400/10
   },
   firstModalButton: {
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#2dd4bf1a', // bg-teal-400/10
+    borderBottomColor: "#2dd4bf1a", // bg-teal-400/10
   },
   lastModalButton: {
     borderBottomLeftRadius: 12,
@@ -350,10 +350,161 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   modalButtonText: {
-    color: '#0b4f4a', // text-teal-900
+    color: "#0b4f4a", // text-teal-900
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 
 export default TalkingSpeedTest;
+
+
+//
+// import { useState, useEffect, useRef, useCallback } from 'react';
+//
+// import { StyleSheet, View, Text, Button } from 'react-native';
+// import Vosk from 'react-native-vosk';
+//
+// export default function App(): JSX.Element {
+//   const [ready, setReady] = useState<Boolean>(false);
+//   const [recognizing, setRecognizing] = useState<Boolean>(false);
+//   const [result, setResult] = useState<string | undefined>();
+//
+//   const vosk = useRef(new Vosk()).current;
+//
+//   const load = useCallback(() => {
+//     vosk
+//       .loadModel('model-en-us')
+//       .then(() => setReady(true))
+//       .catch((e) => console.error(e));
+//   }, [vosk]);
+//
+//   const record = () => {
+//     vosk
+//       .start()
+//       .then(() => {
+//         console.log('Starting recognition...');
+//         setRecognizing(true);
+//       })
+//       .catch((e) => console.error(e));
+//   };
+//
+//   const recordGrammar = () => {
+//     vosk
+//       .start({ grammar: ['cool', 'application', '[unk]'] })
+//       .then(() => {
+//         console.log('Starting recognition with grammar...');
+//         setRecognizing(true);
+//       })
+//       .catch((e) => console.error(e));
+//   };
+//
+//   const recordTimeout = () => {
+//     vosk
+//       .start({ timeout: 5000 })
+//       .then(() => {
+//         console.log('Starting recognition with timeout...');
+//         setRecognizing(true);
+//       })
+//       .catch((e) => console.error(e));
+//   };
+//
+//   const stop = () => {
+//     vosk.stop();
+//     console.log('Stoping recognition...');
+//     setRecognizing(false);
+//   };
+//
+//   const unload = useCallback(() => {
+//     vosk.unload();
+//     setReady(false);
+//     setRecognizing(false);
+//   }, [vosk]);
+//
+//   useEffect(() => {
+//     const resultEvent = vosk.onResult((res) => {
+//       console.log('An onResult event has been caught: ' + res);
+//       setResult(res);
+//     });
+//
+//     const partialResultEvent = vosk.onPartialResult((res) => {
+//       setResult(res);
+//     });
+//
+//     const finalResultEvent = vosk.onFinalResult((res) => {
+//       setResult(res);
+//     });
+//
+//     const errorEvent = vosk.onError((e) => {
+//       console.error(e);
+//     });
+//
+//     const timeoutEvent = vosk.onTimeout(() => {
+//       console.log('Recognizer timed out');
+//       setRecognizing(false);
+//     });
+//
+//     return () => {
+//       resultEvent.remove();
+//       partialResultEvent.remove();
+//       finalResultEvent.remove();
+//       errorEvent.remove();
+//       timeoutEvent.remove();
+//     };
+//   }, [vosk]);
+//
+//   return (
+//     <View style={styles.container}>
+//       <Button
+//         onPress={ready ? unload : load}
+//         title={ready ? 'Unload model' : 'Load model'}
+//         color="blue"
+//       />
+//
+//       {!recognizing && (
+//         <View style={styles.recordingButtons}>
+//           <Button
+//             title="Record"
+//             onPress={record}
+//             disabled={!ready}
+//             color="green"
+//           />
+//
+//           <Button
+//             title="Record with grammar"
+//             onPress={recordGrammar}
+//             disabled={!ready}
+//             color="green"
+//           />
+//
+//           <Button
+//             title="Record with timeout"
+//             onPress={recordTimeout}
+//             disabled={!ready}
+//             color="green"
+//           />
+//         </View>
+//       )}
+//
+//       {recognizing && <Button onPress={stop} title="Stop" color="red" />}
+//
+//       <Text>Recognized word:</Text>
+//       <Text>{result}</Text>
+//     </View>
+//   );
+// }
+//
+// const styles = StyleSheet.create({
+//   container: {
+//     gap: 25,
+//     flex: 1,
+//     display: 'flex',
+//     textAlign: 'center',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//   },
+//   recordingButtons: {
+//     gap: 15,
+//     display: 'flex',
+//   },
+// });
