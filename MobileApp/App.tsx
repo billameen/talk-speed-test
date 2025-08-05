@@ -9,7 +9,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import Svg, { Path, G } from "react-native-svg";
-// import Vosk from "react-native-vosk";
+import Vosk from "react-native-vosk";
 
 type Mode = "Freestyle" | "Regular" | "Custom" | "Metronome";
 
@@ -19,10 +19,14 @@ const TalkingSpeedTest: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [transcript, setTranscript] = useState<string>("");
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [messages, setMessages] = useState<string | undefined>();
+  const [seconds, setSeconds] = useState(3);
 
   const [ready, setReady] = useState<Boolean>(false);
   const [recognizing, setRecognizing] = useState<Boolean>(false);
-  const [result, setResult] = useState<string | undefined>();
+  const [result, setResult] = useState<string>("");
+  const [fullResult, setFullResult] = useState<string>("");
+  const [partialResult, setPartialResult] = useState<string>("");
 
   const modes: Mode[] = ["Freestyle", "Regular", "Custom", "Metronome"];
 
@@ -42,87 +46,91 @@ const TalkingSpeedTest: React.FC = () => {
     setIsModalVisible(false);
   };
 
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const handlePlayPress = (): void => {
-//     setIsRecording(!isRecording);
-//
-//     if (isRecording) {
-//       if (!ready) load;
-//       record;
-//     }
+    if (!isRecording) {
+      setIsRecording(true);
+      if (ready === false) load(); // if not ready
 
-//     if (!isRecording) {
-//       if (ready) unload;
-//       stop;
+      timeoutRef.current = setTimeout(() => {
+        record();
+      }, 3000);
 
-      setTranscript("Recording started...");
-      setWpm("120"); // Example WPM
-//     } else {
-      setTranscript("Recording stopped.");
-//     }
+    } else {
+      setIsRecording(false);
+      stop();
+      setWpm("120");
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null;
+      }
+    }
   };
 
-//
-//   const vosk = useRef(new Vosk()).current;
-//   const load = useCallback(() => {
-//     vosk
-//       .loadModel("model-en-us")
-//       .then(() => setReady(true))
-//       .catch((e) => console.error(e));
-//   }, [vosk]);
-//
-//   const record = () => {
-//     vosk
-//       .start()
-//       .then(() => {
-//         console.log("Starting recognition...");
-//         setRecognizing(true);
-//       })
-//       .catch((e) => console.error(e));
-//   }
-//
-//   const stop = () => {
-//     vosk.stop();
-//     console.log("Stopping recognition...");
-//     setRecognizing(false);
-//   }
-//
-//   const unload = useCallback(() => {
-//     vosk.unload();
-//     setReady(false);
-//     setRecognizing(false);
-//   }, [vosk]);
-//
-//   useEffect(() => {
-//     const resultEvent = vosk.onResult((res) => {
-//       console.log("An onResult event has been caught:" + res);
-//       setResult(res);
-//     });
-//
-//     const partialResultEvent = vosk.onPartialResult((res) => {
-//       setResult(res);
-//     });
-//
-//     const finalResultEvent = vosk.onFinalResult((res) => {
-//       setResult(res);
-//     });
-//
-//     const errorEvent = vosk.onError((e) => {
-//       console.error(e);
-//     });
-//
-//     const timeoutEvent = vosk.onTimeout(() => {
-//       console.log("Recognizer timed out");
-//       setRecognizing(false);
-//     });
-//
-//     return () => {
-//       resultEvent.remove();
-//       partialResultEvent.remove();
-//       finalResultEvent.remove();
-//       errorEvent.remove();
-//       timeoutEvent.remove();
-//     };
-//   }, [vosk]);
+
+
+  const vosk = useRef(new Vosk()).current;
+  const load = useCallback(() => {
+    vosk
+      .loadModel('model-en-us')
+      .then(() => setReady(true))
+      .catch((e) => console.error(e));
+  }, [vosk]);
+
+  const record = () => {
+    vosk
+      .start()
+      .then(() => {
+        console.log("Starting recognition...");
+        setRecognizing(true);
+      })
+      .catch((e) => console.error(e));
+  }
+
+  const stop = () => {
+    vosk.stop();
+    console.log("Stopping recognition...");
+    setRecognizing(false);
+  }
+
+  const unload = useCallback(() => {
+    console.log("loading model");
+    vosk.unload();
+    setReady(false);
+    setRecognizing(false);
+  }, [vosk]);
+
+  useEffect(() => {
+    const resultEvent = vosk.onResult((res) => {
+      console.log("An onResult event has been caught:" + res);
+      setFullResult(pastResult => pastResult + " " + res);
+      setPartialResult("");
+    });
+
+    const partialResultEvent = vosk.onPartialResult((res) => {
+      console.log("A partialResult event has been caught:" + res);
+      setPartialResult(res)
+    });
+
+    const finalResultEvent = vosk.onFinalResult((res) => {
+      console.log("A finalResult event has been caught:" + res);
+      setFullResult(pastResult => pastResult + " " + res);
+      setPartialResult("");
+    });
+
+    const errorEvent = vosk.onError((e) => {
+      console.error(e);
+    });
+
+    return () => {
+      resultEvent.remove();
+      partialResultEvent.remove();
+      finalResultEvent.remove();
+      errorEvent.remove();
+    };
+  }, [vosk]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -130,6 +138,10 @@ const TalkingSpeedTest: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Talking Speed Test</Text>
+        </View>
+
+        <View>
+          <Text style={styles.title}> {messages} </Text>
         </View>
 
         {/* Main Content */}
@@ -163,7 +175,7 @@ const TalkingSpeedTest: React.FC = () => {
           {/* Transcript */}
           <View style={styles.transcriptContainer}>
             <Text style={styles.transcriptTitle}>Transcript</Text>
-            <Text style={styles.transcriptText}>{result}</Text>
+            <Text style={styles.transcriptText}>{fullResult + " " + partialResult}</Text>
           </View>
         </View>
 
@@ -359,6 +371,8 @@ const styles = StyleSheet.create({
 export default TalkingSpeedTest;
 
 
+
+
 //
 // import { useState, useEffect, useRef, useCallback } from 'react';
 //
@@ -508,42 +522,3 @@ export default TalkingSpeedTest;
 //     display: 'flex',
 //   },
 // });
-
-
-
-
-
-
-
-
-
-
-
-// /**
-//  * Sample React Native App
-//  * https://github.com/facebook/react-native
-//  *
-//  * @format
-//  */
-
-// import { NewAppScreen } from '@react-native/new-app-screen';
-// import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-
-// function App() {
-//   const isDarkMode = useColorScheme() === 'dark';
-
-//   return (
-//     <View style={styles.container}>
-//       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-//       <NewAppScreen templateFileName="App.tsx" />
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//   },
-// });
-
-// export default App;
