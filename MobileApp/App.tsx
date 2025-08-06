@@ -315,8 +315,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   transcriptText: {
-    fontSize: 16,
-    color: "#cbd5e1", // text-slate-200
+    fontSize: 18,
+    color: "#bfdbfe", // text-slate-200
     lineHeight: 24,
     minHeight: 50,
   },
