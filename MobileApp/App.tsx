@@ -12,26 +12,123 @@ import Svg, { Path, G } from "react-native-svg";
 import Vosk from "react-native-vosk";
 
 type Mode = "Freestyle" | "Regular" | "Custom" | "Metronome";
+const modes: Mode[] = ["Freestyle", "Regular", "Custom", "Metronome"];
+const sampleText = `Origami offers numerous benefits that extend beyond mere artistic expression. Engaging in this intricate paper-folding art enhances fine motor skills and hand-eye coordination, making it a valuable activity for individuals of all ages. Additionally, origami fosters creativity and problem-solving abilities, as practitioners must visualize and execute complex designs. The meditative nature of folding paper can also promote relaxation and reduce stress, contributing to overall mental well-being. Furthermore, origami serves as an educational tool, helping to teach concepts in mathematics and geometry through practical application, thereby enriching cognitive development.`;
+const wpm_update_frequency = 2000;
 
 const TalkingSpeedTest: React.FC = () => {
-  const [wpm, setWpm] = useState<string>("--");
   const [selectedMode, setSelectedMode] = useState<Mode>("Regular");
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
-  const [transcript, setTranscript] = useState<string>("");
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [messages, setMessages] = useState<string | undefined>();
-  const [seconds, setSeconds] = useState(3);
 
   const [ready, setReady] = useState<Boolean>(false);
   const [recognizing, setRecognizing] = useState<Boolean>(false);
-  const [result, setResult] = useState<string>("");
   const [fullResult, setFullResult] = useState<string>("");
   const [partialResult, setPartialResult] = useState<string>("");
 
-  const modes: Mode[] = ["Freestyle", "Regular", "Custom", "Metronome"];
+  const [wpmDisplay, setWpmDisplay] = useState<string>("--");
+  const [wpm, setWpm] = useState<number>(0);
+  const [rawWpm, setRawWpm] = useState<number>(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [recentWPMUpdateTime, setRecentWPMUpdateTime] = useState<number>(0);
+  const [totalWordsSpoken, setTotalWordsSpoken] = useState<number>(0);
 
-  const sampleText = `Origami offers numerous benefits that extend beyond mere artistic expression. Engaging in this intricate paper-folding art enhances fine motor skills and hand-eye coordination, making it a valuable activity for individuals of all ages. Additionally, origami fosters creativity and problem-solving abilities, as practitioners must visualize and execute complex designs. The meditative nature of folding paper can also promote relaxation and reduce stress, contributing to overall mental well-being. Furthermore, origami serves as an educational tool, helping to teach concepts in mathematics and geometry through practical application, thereby enriching cognitive development.`;
 
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+//   const wpmIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+
+
+
+  // WPM Stuff
+  const getNumWordsSpoken = (wordsSpoken: string): number => {
+    if (!wordsSpoken || wordsSpoken.trim() === "") return 0;
+    return wordsSpoken.trim().split(/\s+/).filter(word => word.length > 0).length;
+  }
+
+  const calculateWPM = (numWordsSpoken: number, timeInMs: number): number => {
+    if ( !numWordsSpoken || numWordsSpoken === 0 ) return 0;
+    const mins = timeInMs / (60 * 1000);
+    return Math.round(numWordsSpoken / mins);
+  }
+
+  const resetWPMData = useCallback(() => {
+    setWpm(0);
+    setRawWpm(0);
+    setWpmDisplay("0");
+    setStartTime(null);
+    setPartialResult("");
+    setFullResult("");
+//     setTotalWordsSpoken(0);
+//     setRecentWPMUpdateTime(0);
+  }, []);
+
+
+  // updating wpm
+  useEffect(() => {
+    if ( isRecording && startTime ) {
+      const currentTime = Date.now();
+      const fullTranscript = fullResult + " " + partialResult;
+      const numWords = getNumWordsSpoken(fullTranscript);
+      const elapsedTime = currentTime - startTime;
+      const currentWPM = calculateWPM(numWords, elapsedTime);
+
+      setWpm(currentWPM);
+      setTotalWordsSpoken(numWords);
+
+// This is all code for updating the WPM every 2 seconds, it doesn't work correctly yet
+//       if ( wpmIntervalRef.current ) {
+//         clearInterval(wpmIntervalRef.current);
+//       }
+//
+//       wpmIntervalRef.current = setInterval(() => {
+//         console.log("in wpm interval");
+//         const updatedCurrentTime = Date.now();
+//         const updatedElapsedTime = updatedCurrentTime - recentWPMUpdateTime;
+//         const updatedTranscript = fullResult + " " + partialResult;
+//         const updatedNumWords = getNumWordsSpoken(updatedTranscript);
+//         const newWordsSpoken = updatedNumWords - totalWordsSpoken;
+//         const currentRawWpm = calculateWPM(newWordsSpoken, updatedElapsedTime);
+//         console.log("current elapsed time: ", updatedElapsedTime);
+//         setRawWpm(currentRawWpm);
+//         setRecentWPMUpdateTime(updatedCurrentTime);
+//       }, wpm_update_frequency);
+    }
+// This is all code for updating the WPM every 2 seconds, it doesn't work correctly yet
+//     else {
+//       if ( wpmIntervalRef.current ) {
+//         clearInterval(wpmIntervalRef.current);
+//         wpmIntervalRef.current = null;
+//       }
+//     }
+  }, [isRecording, startTime, fullResult, partialResult]);
+
+  // updating wpm visuals
+  useEffect(() => {
+    console.log("Updating WPM on screen");
+    if ( isRecording ) {
+      console.log("Setting raw wpm on screen:", rawWpm);
+      setWpmDisplay(rawWpm.toString());
+    } else {
+      setWpmDisplay(wpm.toString());
+    }
+  }, [wpm, rawWpm, isRecording]);
+
+
+
+
+  // Modes stuff
+  const handleModeSelect = (mode: Mode): void => {
+    setSelectedMode(mode);
+    setIsModalVisible(false);
+  };
+
+
+
+
+
+  // Starting the test
   const PlayIcon: React.FC = () => (
     <Svg width={80} height={80} viewBox="0 0 60 60">
       <G fill="#0b4f4a">
@@ -41,17 +138,14 @@ const TalkingSpeedTest: React.FC = () => {
     </Svg>
   );
 
-  const handleModeSelect = (mode: Mode): void => {
-    setSelectedMode(mode);
-    setIsModalVisible(false);
-  };
-
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const handlePlayPress = (): void => {
     if (!isRecording) {
+      resetWPMData();
       setIsRecording(true);
-      if (ready === false) load(); // if not ready
+      setStartTime(Date.now());
+      setRecentWPMUpdateTime(Date.now());
+
+      if (ready === false) load();
 
       timeoutRef.current = setTimeout(() => {
         record();
@@ -60,8 +154,7 @@ const TalkingSpeedTest: React.FC = () => {
     } else {
       setIsRecording(false);
       stop();
-      setWpm("120");
-
+      if (ready) unload();
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
         timeoutRef.current = null;
@@ -71,6 +164,7 @@ const TalkingSpeedTest: React.FC = () => {
 
 
 
+  // Speech to text stuff
   const vosk = useRef(new Vosk()).current;
   const load = useCallback(() => {
     vosk
@@ -96,7 +190,7 @@ const TalkingSpeedTest: React.FC = () => {
   }
 
   const unload = useCallback(() => {
-    console.log("loading model");
+    console.log("unloading model");
     vosk.unload();
     setReady(false);
     setRecognizing(false);
@@ -104,18 +198,18 @@ const TalkingSpeedTest: React.FC = () => {
 
   useEffect(() => {
     const resultEvent = vosk.onResult((res) => {
-      console.log("An onResult event has been caught:" + res);
+//       console.log("An onResult event has been caught:" + res);
       setFullResult(pastResult => pastResult + " " + res);
       setPartialResult("");
     });
 
     const partialResultEvent = vosk.onPartialResult((res) => {
-      console.log("A partialResult event has been caught:" + res);
+//       console.log("A partialResult event has been caught:" + res);
       setPartialResult(res)
     });
 
     const finalResultEvent = vosk.onFinalResult((res) => {
-      console.log("A finalResult event has been caught:" + res);
+//       console.log("A finalResult event has been caught:" + res);
       setFullResult(pastResult => pastResult + " " + res);
       setPartialResult("");
     });
@@ -147,7 +241,7 @@ const TalkingSpeedTest: React.FC = () => {
         {/* Main Content */}
         <View style={styles.mainContent}>
           {/* WPM Display */}
-          <Text style={styles.wpmText}>{wpm} WPM</Text>
+          <Text style={styles.wpmText}>{wpmDisplay} WPM</Text>
 
           {/* Settings Section */}
           <View style={styles.settingsSection}>
@@ -369,156 +463,3 @@ const styles = StyleSheet.create({
 });
 
 export default TalkingSpeedTest;
-
-
-
-
-//
-// import { useState, useEffect, useRef, useCallback } from 'react';
-//
-// import { StyleSheet, View, Text, Button } from 'react-native';
-// import Vosk from 'react-native-vosk';
-//
-// export default function App(): JSX.Element {
-//   const [ready, setReady] = useState<Boolean>(false);
-//   const [recognizing, setRecognizing] = useState<Boolean>(false);
-//   const [result, setResult] = useState<string | undefined>();
-//
-//   const vosk = useRef(new Vosk()).current;
-//
-//   const load = useCallback(() => {
-//     vosk
-//       .loadModel('model-en-us')
-//       .then(() => setReady(true))
-//       .catch((e) => console.error(e));
-//   }, [vosk]);
-//
-//   const record = () => {
-//     vosk
-//       .start()
-//       .then(() => {
-//         console.log('Starting recognition...');
-//         setRecognizing(true);
-//       })
-//       .catch((e) => console.error(e));
-//   };
-//
-//   const recordGrammar = () => {
-//     vosk
-//       .start({ grammar: ['cool', 'application', '[unk]'] })
-//       .then(() => {
-//         console.log('Starting recognition with grammar...');
-//         setRecognizing(true);
-//       })
-//       .catch((e) => console.error(e));
-//   };
-//
-//   const recordTimeout = () => {
-//     vosk
-//       .start({ timeout: 5000 })
-//       .then(() => {
-//         console.log('Starting recognition with timeout...');
-//         setRecognizing(true);
-//       })
-//       .catch((e) => console.error(e));
-//   };
-//
-//   const stop = () => {
-//     vosk.stop();
-//     console.log('Stoping recognition...');
-//     setRecognizing(false);
-//   };
-//
-//   const unload = useCallback(() => {
-//     vosk.unload();
-//     setReady(false);
-//     setRecognizing(false);
-//   }, [vosk]);
-//
-//   useEffect(() => {
-//     const resultEvent = vosk.onResult((res) => {
-//       console.log('An onResult event has been caught: ' + res);
-//       setResult(res);
-//     });
-//
-//     const partialResultEvent = vosk.onPartialResult((res) => {
-//       setResult(res);
-//     });
-//
-//     const finalResultEvent = vosk.onFinalResult((res) => {
-//       setResult(res);
-//     });
-//
-//     const errorEvent = vosk.onError((e) => {
-//       console.error(e);
-//     });
-//
-//     const timeoutEvent = vosk.onTimeout(() => {
-//       console.log('Recognizer timed out');
-//       setRecognizing(false);
-//     });
-//
-//     return () => {
-//       resultEvent.remove();
-//       partialResultEvent.remove();
-//       finalResultEvent.remove();
-//       errorEvent.remove();
-//       timeoutEvent.remove();
-//     };
-//   }, [vosk]);
-//
-//   return (
-//     <View style={styles.container}>
-//       <Button
-//         onPress={ready ? unload : load}
-//         title={ready ? 'Unload model' : 'Load model'}
-//         color="blue"
-//       />
-//
-//       {!recognizing && (
-//         <View style={styles.recordingButtons}>
-//           <Button
-//             title="Record"
-//             onPress={record}
-//             disabled={!ready}
-//             color="green"
-//           />
-//
-//           <Button
-//             title="Record with grammar"
-//             onPress={recordGrammar}
-//             disabled={!ready}
-//             color="green"
-//           />
-//
-//           <Button
-//             title="Record with timeout"
-//             onPress={recordTimeout}
-//             disabled={!ready}
-//             color="green"
-//           />
-//         </View>
-//       )}
-//
-//       {recognizing && <Button onPress={stop} title="Stop" color="red" />}
-//
-//       <Text>Recognized word:</Text>
-//       <Text>{result}</Text>
-//     </View>
-//   );
-// }
-//
-// const styles = StyleSheet.create({
-//   container: {
-//     gap: 25,
-//     flex: 1,
-//     display: 'flex',
-//     textAlign: 'center',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-//   recordingButtons: {
-//     gap: 15,
-//     display: 'flex',
-//   },
-// });
